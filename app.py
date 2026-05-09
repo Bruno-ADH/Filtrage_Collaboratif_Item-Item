@@ -88,7 +88,7 @@ with col1:
     st.markdown("**Films les mieux notés par cet utilisateur :**")
     st.dataframe(
         top_rated[["Titre", "Genre", "Note"]],
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 
@@ -111,7 +111,7 @@ with col2:
             recs[["title", "genres", "Score"]].rename(
                 columns={"title": "Titre", "genres": "Genre", "Score": "Score prédit"}
             ),
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             column_config={
                 "Score prédit": st.column_config.ProgressColumn(

@@ -17,6 +17,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 MOVIELENS_URL = "https://files.grouplens.org/datasets/movielens/ml-latest-small.zip"
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+MIN_RATINGS_PER_MOVIE = 20
 
 
 # ─────────────────────────────────────────
@@ -51,6 +52,13 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     ratings = pd.read_csv(ratings_path)
     movies  = pd.read_csv(movies_path)
 
+    # Streamlit Cloud a une memoire limitee. On garde les films qui ont assez
+    # de notes pour produire une similarite fiable sans creer une matrice enorme.
+    movie_counts = ratings["movieId"].value_counts()
+    kept_movie_ids = movie_counts[movie_counts >= MIN_RATINGS_PER_MOVIE].index
+    ratings = ratings[ratings["movieId"].isin(kept_movie_ids)]
+    movies = movies[movies["movieId"].isin(kept_movie_ids)]
+
     # Matrice utilisateurs × films (NaN pour les films non notés)
     matrix = ratings.pivot_table(index="userId", columns="movieId", values="rating")
     return ratings, movies, matrix
@@ -65,7 +73,7 @@ def compute_item_similarity(matrix: pd.DataFrame) -> pd.DataFrame:
     On remplace les NaN par 0 (un utilisateur qui n'a pas noté = neutre).
     Retourne un DataFrame (movieId × movieId).
     """
-    filled = matrix.fillna(0).values  # shape : (n_users, n_items)
+    filled = matrix.fillna(0).astype(np.float32).values  # shape : (n_users, n_items)
     sim_matrix = cosine_similarity(filled.T)  # transposée → items × items
     return pd.DataFrame(sim_matrix, index=matrix.columns, columns=matrix.columns)
 
